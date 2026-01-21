@@ -390,6 +390,9 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
 
+        // Default API URL (hardcoded for Angelina)
+        const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbwIA_mgS0tVD1wDVRzFLKuYQEalL0lv6NEYI9Zd828SGGN7RIH0NGYulD2s7mIgHZ_r/exec';
+
         // Section order and colors
         const SECTION_ORDER = ['2ND CALL', 'GHOSTED', 'SOLD', 'CANT HELP'];
         const SECTION_COLORS = {
@@ -591,7 +594,7 @@
 
         // Main App
         function App() {
-            const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('leadTrackerApiUrl') || '');
+            const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('leadTrackerApiUrl') || DEFAULT_API_URL);
             const [sections, setSections] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
