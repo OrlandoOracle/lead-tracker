@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LookingGlass Lead Tracker</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: #16213e;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a2a4a;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            background: #1a1a2e;
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            width: 200px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus {
+            border-color: #6366f1;
+        }
+
+        .search-box::placeholder {
+            color: #6a6a8a;
+        }
+
+        .btn {
+            background: #3a3a5a;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: #4a4a6a;
+        }
+
+        .btn-primary {
+            background: #6366f1;
+        }
+
+        .btn-primary:hover {
+            background: #5558e3;
+        }
+
+        .last-updated {
+            font-size: 0.8rem;
+            color: #6a6a8a;
+        }
+
+        /* Main content */
+        .main {
+            padding: 1.5rem;
+        }
+
+        /* Kanban Board */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            min-height: calc(100vh - 150px);
+        }
+
+        @media (max-width: 1200px) {
+            .kanban-board {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .kanban-board {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Column */
+        .column {
+            background: #16213e;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .column-header {
+            padding: 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #1a1a2e;
+        }
+
+        .column-header .count {
+            background: rgba(0,0,0,0.2);
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .column-content {
+            flex: 1;
+            padding: 0.5rem;
+            overflow-y: auto;
+            min-height: 200px;
+        }
+
+        .column-content.drag-over {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Lead Card */
+        .lead-card {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+            border: 1px solid #2a2a4a;
+        }
+
+        .lead-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-color: #3a3a5a;
+        }
+
+        .lead-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .lead-card.expanded {
+            cursor: default;
+        }
+
+        .lead-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .lead-phone {
+            color: #6366f1;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        .lead-phone:hover {
+            color: #818cf8;
+            text-decoration: underline;
+        }
+
+        .lead-datetime {
+            font-size: 0.8rem;
+            color: #8a8aaa;
+            margin-bottom: 0.5rem;
+        }
+
+        .lead-notes {
+            font-size: 0.85rem;
+            color: #a0a0c0;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .lead-notes.expanded {
+            -webkit-line-clamp: unset;
+            display: block;
+        }
+
+        .lead-agent {
+            font-size: 0.75rem;
+            color: #6a6a8a;
+            margin-top: 0.5rem;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            color: #6366f1;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            padding: 0;
+        }
+
+        .expand-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid #2a2a4a;
+        }
+
+        .modal h2 {
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+
+        .modal label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #a0a0c0;
+        }
+
+        .modal input[type="text"],
+        .modal textarea {
+            width: 100%;
+            background: #1a1a2e;
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            outline: none;
+        }
+
+        .modal input[type="text"]:focus,
+        .modal textarea:focus {
+            border-color: #6366f1;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background: #16213e;
+            border: 1px solid #2a2a4a;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            color: #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-left: 4px solid #6ba84f;
+        }
+
+        .toast.error {
+            border-left: 4px solid #ea9999;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 50vh;
+            color: #6a6a8a;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #3a3a5a;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-column {
+            text-align: center;
+            color: #6a6a8a;
+            padding: 2rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // Section order and colors
+        const SECTION_ORDER = ['2ND CALL', 'GHOSTED', 'SOLD', 'CANT HELP'];
+        const SECTION_COLORS = {
+            '2ND CALL': '#fff299',
+            'GHOSTED': '#cccccc',
+            'SOLD': '#6ba84f',
+            'CANT HELP': '#ea9999'
+        };
+
+        // Toast component
+        function Toast({ message, type, onClose }) {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 3000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            return (
+                <div className={`toast ${type}`}>
+                    {message}
+                </div>
+            );
+        }
+
+        // Lead Card component
+        function LeadCard({ lead, onDragStart, onDragEnd }) {
+            const [expanded, setExpanded] = useState(false);
+            const notes = lead.notes || lead.firstNotes || '';
+            const hasLongNotes = notes.length > 80;
+
+            const handleDragStart = (e) => {
+                e.dataTransfer.setData('text/plain', JSON.stringify(lead));
+                e.dataTransfer.effectAllowed = 'move';
+                onDragStart(lead);
+            };
+
+            const formatDateTime = () => {
+                const parts = [];
+                if (lead.date) parts.push(lead.date);
+                if (lead.time) parts.push(lead.time);
+                return parts.join(' @ ');
+            };
+
+            return (
+                <div
+                    className={`lead-card ${expanded ? 'expanded' : ''}`}
+                    draggable={!expanded}
+                    onDragStart={handleDragStart}
+                    onDragEnd={onDragEnd}
+                >
+                    <div className="lead-name">{lead.name}</div>
+                    {lead.phone && (
+                        <a href={`tel:${lead.phone.replace(/\D/g, '')}`} className="lead-phone" onClick={e => e.stopPropagation()}>
+                            {lead.phone}
+                        </a>
+                    )}
+                    {formatDateTime() && (
+                        <div className="lead-datetime">{formatDateTime()}</div>
+                    )}
+                    {notes && (
+                        <>
+                            <div className={`lead-notes ${expanded ? 'expanded' : ''}`}>
+                                {notes}
+                            </div>
+                            {hasLongNotes && (
+                                <button className="expand-btn" onClick={() => setExpanded(!expanded)}>
+                                    {expanded ? 'Show less' : 'Show more'}
+                                </button>
+                            )}
+                        </>
+                    )}
+                    {lead.agent && (
+                        <div className="lead-agent">Agent: {lead.agent}</div>
+                    )}
+                </div>
+            );
+        }
+
+        // Column component
+        function Column({ section, leads, onDrop, onDragStart, onDragEnd, draggingLead }) {
+            const [dragOver, setDragOver] = useState(false);
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                setDragOver(true);
+            };
+
+            const handleDragLeave = () => {
+                setDragOver(false);
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                setDragOver(false);
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                onDrop(data, section.name);
+            };
+
+            const headerColor = SECTION_COLORS[section.name] || section.color || '#666';
+
+            return (
+                <div className="column">
+                    <div className="column-header" style={{ backgroundColor: headerColor }}>
+                        <span>{section.name}</span>
+                        <span className="count">{leads.length}</span>
+                    </div>
+                    <div
+                        className={`column-content ${dragOver ? 'drag-over' : ''}`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                    >
+                        {leads.length === 0 ? (
+                            <div className="empty-column">No leads</div>
+                        ) : (
+                            leads.map((lead) => (
+                                <LeadCard
+                                    key={`${lead.row}-${lead.phone}`}
+                                    lead={lead}
+                                    onDragStart={onDragStart}
+                                    onDragEnd={onDragEnd}
+                                />
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Settings Modal
+        function SettingsModal({ apiUrl, onSave, onClose }) {
+            const [url, setUrl] = useState(apiUrl);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onSave(url);
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h2>Settings</h2>
+                        <form onSubmit={handleSubmit}>
+                            <label htmlFor="apiUrl">Google Apps Script URL</label>
+                            <input
+                                type="text"
+                                id="apiUrl"
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                placeholder="https://script.google.com/macros/s/.../exec"
+                            />
+                            <p style={{ fontSize: '0.8rem', color: '#6a6a8a', marginBottom: '1rem' }}>
+                                Enter the deployed Google Apps Script web app URL
+                            </p>
+                            <div className="modal-buttons">
+                                <button type="button" className="btn" onClick={onClose}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Move Notes Modal
+        function MoveModal({ lead, targetSection, onConfirm, onCancel }) {
+            const [notes, setNotes] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onConfirm(notes);
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onCancel}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h2>Move Lead</h2>
+                        <p style={{ marginBottom: '1rem', color: '#a0a0c0' }}>
+                            Moving <strong>{lead.name}</strong> to <strong>{targetSection}</strong>
+                        </p>
+                        <form onSubmit={handleSubmit}>
+                            <label htmlFor="moveNotes">Add notes (optional)</label>
+                            <textarea
+                                id="moveNotes"
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                rows={3}
+                                placeholder="Add any notes about this move..."
+                            />
+                            <div className="modal-buttons">
+                                <button type="button" className="btn" onClick={onCancel}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Move Lead</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App
+        function App() {
+            const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('leadTrackerApiUrl') || '');
+            const [sections, setSections] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [showSettings, setShowSettings] = useState(false);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [lastUpdated, setLastUpdated] = useState(null);
+            const [toasts, setToasts] = useState([]);
+            const [draggingLead, setDraggingLead] = useState(null);
+            const [moveModal, setMoveModal] = useState(null);
+            const refreshInterval = useRef(null);
+
+            const addToast = useCallback((message, type = 'success') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, message, type }]);
+            }, []);
+
+            const removeToast = useCallback((id) => {
+                setToasts(prev => prev.filter(t => t.id !== id));
+            }, []);
+
+            const fetchLeads = useCallback(async () => {
+                if (!apiUrl) {
+                    setLoading(false);
+                    setShowSettings(true);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${apiUrl}?action=list`);
+                    const data = await response.json();
+
+                    if (data.success && data.sections) {
+                        // Sort sections according to our preferred order
+                        const sortedSections = SECTION_ORDER.map(name =>
+                            data.sections.find(s => s.name === name)
+                        ).filter(Boolean);
+
+                        // Add any sections not in our order
+                        data.sections.forEach(s => {
+                            if (!SECTION_ORDER.includes(s.name)) {
+                                sortedSections.push(s);
+                            }
+                        });
+
+                        setSections(sortedSections);
+                        setLastUpdated(new Date());
+                        setError(null);
+                    } else {
+                        throw new Error(data.error || 'Failed to fetch leads');
+                    }
+                } catch (err) {
+                    setError(err.message);
+                    addToast(`Error: ${err.message}`, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }, [apiUrl, addToast]);
+
+            const moveLead = useCallback(async (lead, targetSection, notes = '') => {
+                if (!apiUrl) return;
+
+                // Find current section
+                const currentSection = sections.find(s =>
+                    s.leads.some(l => l.phone === lead.phone && l.row === lead.row)
+                );
+
+                if (currentSection?.name === targetSection) {
+                    return; // Already in this section
+                }
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            action: 'move',
+                            phone: lead.phone,
+                            section: targetSection,
+                            notes: notes
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        addToast(`Moved ${lead.name} to ${targetSection}`);
+                        fetchLeads(); // Refresh data
+                    } else {
+                        throw new Error(data.error || 'Failed to move lead');
+                    }
+                } catch (err) {
+                    addToast(`Error: ${err.message}`, 'error');
+                }
+            }, [apiUrl, sections, addToast, fetchLeads]);
+
+            const handleDrop = useCallback((lead, targetSection) => {
+                // Show move modal with optional notes
+                setMoveModal({ lead, targetSection });
+            }, []);
+
+            const handleMoveConfirm = useCallback((notes) => {
+                if (moveModal) {
+                    moveLead(moveModal.lead, moveModal.targetSection, notes);
+                    setMoveModal(null);
+                }
+            }, [moveModal, moveLead]);
+
+            const handleSaveSettings = useCallback((url) => {
+                localStorage.setItem('leadTrackerApiUrl', url);
+                setApiUrl(url);
+                setShowSettings(false);
+                setLoading(true);
+            }, []);
+
+            // Initial fetch and auto-refresh
+            useEffect(() => {
+                fetchLeads();
+
+                // Set up 30-second refresh
+                refreshInterval.current = setInterval(fetchLeads, 30000);
+
+                return () => {
+                    if (refreshInterval.current) {
+                        clearInterval(refreshInterval.current);
+                    }
+                };
+            }, [fetchLeads]);
+
+            // Filter leads by search term
+            const filterLeads = useCallback((leads) => {
+                if (!searchTerm) return leads;
+                const term = searchTerm.toLowerCase();
+                return leads.filter(lead =>
+                    lead.name?.toLowerCase().includes(term) ||
+                    lead.phone?.toLowerCase().includes(term) ||
+                    lead.notes?.toLowerCase().includes(term)
+                );
+            }, [searchTerm]);
+
+            const formatLastUpdated = () => {
+                if (!lastUpdated) return '';
+                return `Last updated: ${lastUpdated.toLocaleTimeString()}`;
+            };
+
+            // Show settings modal if no API URL
+            if (!apiUrl && !loading) {
+                return (
+                    <>
+                        <div className="header">
+                            <h1>LookingGlass Lead Tracker</h1>
+                        </div>
+                        <div className="loading">
+                            <div style={{ textAlign: 'center' }}>
+                                <p style={{ marginBottom: '1rem' }}>Please configure the API URL to get started</p>
+                                <button className="btn btn-primary" onClick={() => setShowSettings(true)}>
+                                    Open Settings
+                                </button>
+                            </div>
+                        </div>
+                        {showSettings && (
+                            <SettingsModal
+                                apiUrl={apiUrl}
+                                onSave={handleSaveSettings}
+                                onClose={() => setShowSettings(false)}
+                            />
+                        )}
+                    </>
+                );
+            }
+
+            return (
+                <>
+                    <div className="header">
+                        <h1>LookingGlass Lead Tracker</h1>
+                        <div className="header-controls">
+                            <input
+                                type="text"
+                                className="search-box"
+                                placeholder="Search leads..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <span className="last-updated">{formatLastUpdated()}</span>
+                            <button className="btn" onClick={fetchLeads} title="Refresh">
+                                Refresh
+                            </button>
+                            <button className="btn" onClick={() => setShowSettings(true)} title="Settings">
+                                Settings
+                            </button>
+                        </div>
+                    </div>
+
+                    <main className="main">
+                        {loading ? (
+                            <div className="loading">
+                                <div className="spinner"></div>
+                                <span>Loading leads...</span>
+                            </div>
+                        ) : error ? (
+                            <div className="loading">
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ color: '#ea9999', marginBottom: '1rem' }}>Error: {error}</p>
+                                    <button className="btn btn-primary" onClick={fetchLeads}>
+                                        Retry
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="kanban-board">
+                                {sections.map((section) => (
+                                    <Column
+                                        key={section.name}
+                                        section={section}
+                                        leads={filterLeads(section.leads)}
+                                        onDrop={handleDrop}
+                                        onDragStart={setDraggingLead}
+                                        onDragEnd={() => setDraggingLead(null)}
+                                        draggingLead={draggingLead}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </main>
+
+                    {showSettings && (
+                        <SettingsModal
+                            apiUrl={apiUrl}
+                            onSave={handleSaveSettings}
+                            onClose={() => setShowSettings(false)}
+                        />
+                    )}
+
+                    {moveModal && (
+                        <MoveModal
+                            lead={moveModal.lead}
+                            targetSection={moveModal.targetSection}
+                            onConfirm={handleMoveConfirm}
+                            onCancel={() => setMoveModal(null)}
+                        />
+                    )}
+
+                    <div className="toast-container">
+                        {toasts.map((toast) => (
+                            <Toast
+                                key={toast.id}
+                                message={toast.message}
+                                type={toast.type}
+                                onClose={() => removeToast(toast.id)}
+                            />
+                        ))}
+                    </div>
+                </>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
